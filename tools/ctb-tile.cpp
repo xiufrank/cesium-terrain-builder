@@ -80,7 +80,8 @@ public:
     meshQualityFactor(1.0),
     metadata(false),
     cesiumFriendly(false),
-    vertexNormals(false)
+    vertexNormals(false),
+    gzlib(false)
   {}
 
   void
@@ -225,6 +226,10 @@ public:
     static_cast<TerrainBuild *>(Command::self(command))->vertexNormals = true;
   }
 
+  static void setGzlib(command_t* command) {
+      static_cast<TerrainBuild*>(Command::self(command))->gzlib = true;
+  }
+
   const char *outputDir,
     *outputFormat,
     *profile;
@@ -244,6 +249,8 @@ public:
   bool metadata;
   bool cesiumFriendly;
   bool vertexNormals;
+
+  bool gzlib;
 };
 
 /**
@@ -638,7 +645,7 @@ static void
 buildMesh(MeshSerializer &serializer, const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, bool writeVertexNormals = false) {
   i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
     endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
-
+   
   // DEBUG Chunker:
   #if 0
   const string dirname = string(command->outputDir) + osDirSep;
@@ -672,7 +679,7 @@ buildMesh(MeshSerializer &serializer, const MeshTiler &tiler, TerrainBuild *comm
 
     if (serializer.mustSerializeCoordinate(coordinate)) {
       MeshTile *tile = iter.operator*(&reader);
-      serializer.serializeTile(tile, writeVertexNormals);
+      serializer.serializeTile(tile, writeVertexNormals, command->gzlib);
       delete tile;
     }
 
@@ -779,6 +786,7 @@ main(int argc, char *argv[]) {
   command.option("-N", "--vertex-normals", "Write 'Oct-Encoded Per-Vertex Normals' for Terrain Lighting, only for `Mesh` format", TerrainBuild::setVertexNormals);
   command.option("-q", "--quiet", "only output errors", TerrainBuild::setQuiet);
   command.option("-v", "--verbose", "be more noisy", TerrainBuild::setVerbose);
+  command.option("-G", "--gzlib", "use zib compress file(defalut uncompress)", TerrainBuild::setGzlib);
 
   // Parse and check the arguments
   command.parse(argc, argv);
